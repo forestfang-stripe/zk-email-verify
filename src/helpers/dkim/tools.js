@@ -340,7 +340,8 @@ const getPublicKey = async (type, name, minBitLength, resolver) => {
       modulusLength = publicKeyObj.algorithm.modulusLength;
     } else {
       // fall back to node-forge
-      const pubKeyData = pki.publicKeyFromPem(publicKeyPem.toString());
+      const forge = require('node-forge');
+      const pubKeyData = forge.pki.publicKeyFromPem(publicKeyPem.toString());
       // const pubKeyData = CryptoJS.parseKey(publicKeyPem.toString(), 'pem');
       modulusLength = pubKeyData.n.bitLength();
     }

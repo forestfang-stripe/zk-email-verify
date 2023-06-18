@@ -2,7 +2,6 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 import commonjs from "vite-plugin-commonjs";
-import 'rollup-plugin-node-polyfills';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -18,7 +17,6 @@ export default defineConfig({
   resolve: {
     alias: {
       timers: "rollup-plugin-node-polyfills/polyfills/timers",
-      util: "rollup-plugin-node-polyfills/polyfills/util",
       constants: "rollup-plugin-node-polyfills/polyfills/constants",
       process: "rollup-plugin-node-polyfills/polyfills/process-es6",
       os: "rollup-plugin-node-polyfills/polyfills/os",
@@ -30,6 +28,6 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 3001,
   },
 });

@@ -169,4 +169,4 @@ template EmailVerify(max_header_bytes, max_body_bytes, n, k, pack_size, expose_f
 // * pack_size = 7 is the number of bytes that can fit into a 255ish bit signal (can increase later)
 // * expose_from = 0 is whether to expose the from email address
 // * expose_to = 0 is whether to expose the to email (not recommended)
-component main { public [ modulus, address ] } = EmailVerify(1024, 1536, 121, 17, 7, 0, 0);
+// component main { public [ modulus, address ] } = EmailVerify(1024, 1536, 121, 17, 7, 0, 0);

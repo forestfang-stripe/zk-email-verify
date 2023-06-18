@@ -4,7 +4,8 @@ import { uncompressGz as uncompress } from "./uncompress";
 
 import * as snarkjs from "snarkjs";
 
-export const loadURL = "https://zkemail-zkey-chunks.s3.amazonaws.com/";
+export const loadURL = "https://zkmerkleemail-zkey-chunks.s3-us-west-2.amazonaws.com/";
+// export const loadURL = "https://zkemail-zkey-chunks.s3.amazonaws.com/";
 const compressed = true;
 // const loadURL = "/zkemail-zkey-chunks/";
 

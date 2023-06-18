@@ -1,9 +1,10 @@
-import boto3
+import argparse
+import gzip
 import os
 import tarfile
 import time
-import gzip
-import argparse
+
+import boto3
 
 # Set up the client for the AWS S3 service
 s3 = boto3.client('s3')  # Ask Aayush for the access key and secret access key

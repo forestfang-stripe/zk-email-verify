@@ -14,21 +14,25 @@ import {
   int8toBytes,
   int64toBytes,
 } from "../helpers/binaryFormat";
-import { CIRCOM_FIELD_MODULUS, MAX_HEADER_PADDED_BYTES, MAX_BODY_PADDED_BYTES, STRING_PRESELECTOR } from "../helpers/constants";
+import { CIRCOM_FIELD_MODULUS, MAX_HEADER_PADDED_BYTES, MAX_BODY_PADDED_BYTES, STRING_PRESELECTOR, TWITTER_ANON_SET } from "../helpers/constants";
 import { shaHash, partialSha, sha256Pad } from "../helpers/shaHash";
 import { dkimVerify } from "../helpers/dkim";
 import * as fs from "fs";
 import { pki } from "node-forge";
+import {buildPoseidon, buildMimcSponge} from "circomlibjs";
+import { MerkleTree } from "../helpers/merkle";
 
 async function getArgs() {
   const args = process.argv.slice(2);
   const emailFileArg = args.find((arg) => arg.startsWith("--email_file="));
   const nonceArg = args.find((arg) => arg.startsWith("--nonce="));
+  const typeArg = args.find(arg => arg.startsWith("--type="));
 
   const email_file = emailFileArg ? emailFileArg.split("=")[1] : "emls/zktestemail_twitter.eml";
   const nonce = nonceArg ? nonceArg.split("=")[1] : null;
+  const type = typeArg ? typeArg.split("=")[1] : "email_twitter";
 
-  return { email_file, nonce };
+  return { email_file, nonce, type };
 }
 
 export interface ICircuitInputs {
@@ -59,6 +63,22 @@ export interface ICircuitInputs {
   custom_message_id_recipient?: string[];
   nullifier?: string;
   relayer?: string;
+
+  // merkle tree commands only
+  twitter_packed?: string[];
+  merkle_root?: string;
+  merkle_path_elements?: string[];
+  merkle_path_indices?: string[];
+  merkle_tree?: MerkleTree;
+}
+
+interface ExtendedCircuitInputs {
+  valid: {
+    validSignatureFormat?: boolean;
+    validMessage?: boolean;
+  };
+  merkleTree?: MerkleTree;
+  circuitInputs: ICircuitInputs;
 }
 
 export enum CircuitType {
@@ -67,6 +87,8 @@ export enum CircuitType {
   TEST = "test",
   EMAIL_TWITTER = "email_twitter",
   EMAIL_SUBJECT = "email_subject",
+  MERKLE_TWITTER = "merkle_twitter",
+  MERKLE_EMAIL_TWITTER = "merkle_email_twitter",
 }
 
 async function findSelector(a: Uint8Array, selector: number[]): Promise<number> {
@@ -112,13 +134,7 @@ export async function getCircuitInputs(
   body_hash: string,
   eth_address: string,
   circuit: CircuitType
-): Promise<{
-  valid: {
-    validSignatureFormat?: boolean;
-    validMessage?: boolean;
-  };
-  circuitInputs: ICircuitInputs;
-}> {
+): Promise<ExtendedCircuitInputs> {
   console.log("Starting processing of inputs");
   // Derive modulus from signature
   // const modulusBigInt = bytesToBigInt(pubKeyParts[2]);
@@ -176,8 +192,6 @@ export async function getCircuitInputs(
 
   const address = bytesToBigInt(fromHex(eth_address)).toString();
   const nullifier = signature[0];
-  // bytesToBigInt(fromHex()).toString();
-  const address_plus_one = (bytesToBigInt(fromHex(eth_address)) + 1n).toString();
 
   const USERNAME_SELECTOR = Buffer.from(STRING_PRESELECTOR);
 
@@ -185,6 +199,7 @@ export async function getCircuitInputs(
   const email_from_idx = raw_header.length - trimStrByStr(trimStrByStr(raw_header, "from:"), "<").length;
   let email_subject = trimStrByStr(raw_header, "\r\nsubject:");
   //in javascript, give me a function that extracts the first word in a string, everything before the first space
+  let merkleTree;
 
   if (circuit === CircuitType.RSA) {
     circuitInputs = {
@@ -206,7 +221,6 @@ export async function getCircuitInputs(
       in_body_len_padded_bytes,
       twitter_username_idx,
       address,
-      address_plus_one,
       body_hash_idx,
       // email_from_idx,
     };
@@ -244,6 +258,72 @@ export async function getCircuitInputs(
       custom_message_id_from: message_id_array,
       custom_message_id_recipient: message_id_array,
     };
+  } else if (circuit === CircuitType.MERKLE_TWITTER || circuit === CircuitType.MERKLE_EMAIL_TWITTER) {
+    const twitter_username_idx = (Buffer.from(bodyRemaining).indexOf(USERNAME_SELECTOR) + USERNAME_SELECTOR.length).toString();
+    console.log("Indexes into header string are: ", email_from_idx, twitter_username_idx);
+    const twitter_username_matches = Buffer.from(bodyRemaining).toString().match(/This email was meant for @([a-zA-A0-9_]+)/);
+    if (!twitter_username_matches) throw new Error("No twitter username found in email");
+    const twitter_username = twitter_username_matches[1];
+    console.log("Twitter username is: ", twitter_username);
+
+    const max_twitter_username_len = 21;
+    const pack_size = 7; // 7 bytes to fit 255 bits signal
+    const max_twitter_packed_bytes = Math.ceil(max_twitter_username_len / pack_size);
+    const twitter_usernames = [...new Set([twitter_username, ...TWITTER_ANON_SET])].sort();
+    const twitter_usernames_index = twitter_usernames.indexOf(twitter_username);
+
+    const twitter_usernames_packed = twitter_usernames.map((username) => {
+      const packed = packBytesIntoNBytes(username);
+      if (packed.length > max_twitter_packed_bytes) throw new Error(`Username too long ${username}`);
+      // pad with zeros
+      return  packed.concat(new Array(max_twitter_packed_bytes - packed.length).fill(0n));
+    });
+    // console.log(twitter_usernames_packed);
+    const poseidon = await buildPoseidon();
+    const twitter_usernames_hashed = twitter_usernames_packed.map((username_chunks) => poseidon.F.toString(poseidon(username_chunks)));
+    // console.log(twitter_usernames_hashed);
+
+    const mimcsponge = await buildMimcSponge();
+    merkleTree = await MerkleTree.newFromLeaves(twitter_usernames_hashed, async (x: string[]) => BigInt(mimcsponge.F.toString(mimcsponge.multiHash(x.map(BigInt)))));
+    console.log(merkleTree);
+    const proof = merkleTree.getMerkleProof(BigInt(twitter_usernames_hashed[twitter_usernames_index]));
+    const merkle_path_elements = proof.values.map(x => x.toString());
+    const merkle_path_indices = proof.indexHints.map(x => x.toString());
+    const merkle_root = merkleTree.root.value.toString();
+
+    // const merkle_tree = new MerkleTree(20, twitter_usernames_hashed, {
+    //   hashFunction: (left: Element, right: Element) => mimcsponge.F.toString(mimcsponge.multiHash([BigInt(left), BigInt(right)])) as string,
+    // });
+    // // console.log(merkle_tree);
+    // const proof = merkle_tree.proof( twitter_usernames_hashed[0]);
+    // const merkle_path_elements = proof.pathElements as string[];
+    // const merkle_path_indices = proof.pathIndices.map(x => x.toString());
+    // const merkle_root = merkle_tree.root as string;
+
+    const twitter_packed = twitter_usernames_packed[twitter_usernames_index].map(x => x.toString());
+
+    circuitInputs = {
+      twitter_packed,
+      merkle_root,
+      merkle_path_elements,
+      merkle_path_indices,
+    };
+
+    if (circuit === CircuitType.MERKLE_EMAIL_TWITTER) {
+      Object.assign(circuitInputs, {
+        in_padded,
+        modulus,
+        signature,
+        in_len_padded_bytes,
+        precomputed_sha,
+        in_body_padded,
+        in_body_len_padded_bytes,
+        twitter_username_idx,
+        address,
+        body_hash_idx,
+        // email_from_idx,
+      });
+    }
   } else {
     assert(circuit === CircuitType.SHA, "Invalid circuit type");
     circuitInputs = {
@@ -254,6 +334,7 @@ export async function getCircuitInputs(
   }
   return {
     circuitInputs,
+    merkleTree,
     valid: {},
   };
 }
@@ -264,7 +345,7 @@ export async function generate_inputs(
   eth_address: string,
   type: CircuitType = CircuitType.EMAIL_SUBJECT,
   nonce_raw: number | null | string = null
-): Promise<ICircuitInputs> {
+): Promise<ExtendedCircuitInputs> {
   const nonce = typeof nonce_raw == "string" ? nonce_raw.trim() : nonce_raw;
 
   var result, email: Buffer;
@@ -307,8 +388,7 @@ export async function generate_inputs(
   const pubKeyData = pki.publicKeyFromPem(pubkey.toString());
   // const pubKeyData = CryptoJS.parseKey(pubkey.toString(), 'pem');
   let modulus = BigInt(pubKeyData.n.toString());
-  let fin_result = await getCircuitInputs(sig, modulus, message, body, body_hash, eth_address, type);
-  return fin_result.circuitInputs;
+  return getCircuitInputs(sig, modulus, message, body, body_hash, eth_address, type);
 }
 
 // Sometimes, newline encodings re-encode \r\n as just \n, so re-insert the \r so that the email hashes correctly
@@ -330,10 +410,10 @@ export async function insert13Before10(a: Uint8Array): Promise<Uint8Array> {
 // Only called when the whole function is called from the command line, to read inputs
 // Will generate a test proof with the empty Ethereum address, that cannot be proven by anybody else
 async function test_generate(writeToFile: boolean = true) {
-  const { email_file, nonce } = await getArgs();
+  const { email_file, nonce, type } = await getArgs();
   const email = fs.readFileSync(email_file.trim());
   console.log(email);
-  const gen_inputs = await generate_inputs(email, "0x0000000000000000000000000000000000000000", CircuitType.EMAIL_TWITTER, nonce);
+  const {circuitInputs: gen_inputs} = await generate_inputs(email, "0x0000000000000000000000000000000000000000",type as CircuitType, nonce);
   console.log(JSON.stringify(gen_inputs));
   if (writeToFile) {
     const file_dir = email_file.substring(0, email_file.lastIndexOf("/") + 1);

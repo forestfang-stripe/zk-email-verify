@@ -8,7 +8,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { dkimVerify } from "../helpers/dkim";
 import atob from "atob";
 import { downloadProofFiles, generateProof, verifyProof } from "../helpers/zkp";
-import { packedNBytesToString } from "../helpers/binaryFormat";
+import { bigintToRedactedString, packedNBytesToString } from "../helpers/binaryFormat";
 import { LabeledTextArea } from "../components/LabeledTextArea";
 import DragAndDropTextBox from "../components/DragAndDropTextBox";
 import { SingleLineInput } from "../components/SingleLineInput";
@@ -20,10 +20,15 @@ import { useAccount, useContractWrite, usePrepareContractWrite } from "wagmi";
 import { ProgressBar } from "../components/ProgressBar";
 import { abi } from "../helpers/twitterEmailHandler.abi";
 import { isSetIterator } from "util/types";
+import { TWITTER_ANON_SET } from "../helpers/constants";
+import ReactModal from 'react-modal';
+import { MerkleTree } from "../helpers/merkle";
+import { D3Tree } from "../components/D3Tree";
 
 export const MainPage: React.FC<{}> = (props) => {
   // raw user inputs
-  const filename = "email";
+  const filename = "merkle_twitter";
+  // const filename = "email";
 
   const [emailSignals, setEmailSignals] = useState<string>("");
   const [emailFull, setEmailFull] = useState<string>(localStorage.emailFull || "");
@@ -33,18 +38,39 @@ export const MainPage: React.FC<{}> = (props) => {
   const [emailHeader, setEmailHeader] = useState<string>("");
   const { address } = useAccount();
   const [ethereumAddress, setEthereumAddress] = useState<string>(address ?? "");
+  const [showMerkleTree, setShowMerkleTree] = useState<boolean>(false);
+  const [merkleTree, setMerkleTree] = useState<MerkleTree>();
   // computed state
   const { value, error } = useAsync(async () => {
     try {
-      const circuitInputs = await generate_inputs(Buffer.from(atob(emailFull)), ethereumAddress, CircuitType.EMAIL_TWITTER);
+      const formattedArray = await insert13Before10(Uint8Array.from(Buffer.from(emailFull)));
+      const {circuitInputs, merkleTree} = await generate_inputs(Buffer.from(formattedArray), ethereumAddress, CircuitType.MERKLE_EMAIL_TWITTER);
+      setMerkleTree(merkleTree);
       return circuitInputs;
     } catch (e) {
+      console.warn(e);
       return {};
     }
   }, [emailFull, ethereumAddress]);
+  const twitterHandle = React.useMemo(() => {
+    const twitter_username_matches = emailFull.match(/This email was meant for @([a-zA-A0-9_]+)/);
+    if (!twitter_username_matches) return null;
+    const twitter_username = twitter_username_matches[1];
+    return twitter_username;
+  }, [emailFull]);
+  const twitterAnonset = React.useMemo(() => {
+    if (!twitterHandle) return [];
+    return [...new Set([twitterHandle, ...TWITTER_ANON_SET])].sort();
+  }, [twitterHandle]);
+  const merkleRoot = React.useMemo(() => {
+    if (!publicSignals) return "";
+    const publicSignalsArray = JSON.parse(publicSignals);
+    return bigintToRedactedString(publicSignalsArray[publicSignalsArray.length - 1]);
+  }, [publicSignals]);
 
   const circuitInputs = value || {};
   console.log("Circuit inputs:", circuitInputs);
+  console.log('merkleTree', merkleTree?.root.toJSONNode());
 
   const [verificationMessage, setVerificationMessage] = useState("");
   const [verificationPassed, setVerificationPassed] = useState(false);
@@ -259,7 +285,8 @@ export const MainPage: React.FC<{}> = (props) => {
               console.log("ethereumAddress", ethereumAddress);
               let input : ICircuitInputs;
               try {
-                input = await generate_inputs(Buffer.from(formattedArray.buffer), ethereumAddress, CircuitType.EMAIL_TWITTER);
+                const {circuitInputs} = await generate_inputs(Buffer.from(formattedArray.buffer), ethereumAddress, CircuitType.MERKLE_EMAIL_TWITTER);
+                input = circuitInputs;
               } catch (e) {
                 console.log("Error generating input", e);
                 setDisplayMessage("Prove");
@@ -338,6 +365,27 @@ export const MainPage: React.FC<{}> = (props) => {
         </Column>
         <Column>
           <SubHeader>Output</SubHeader>
+          <SingleLineInput
+            label="Twitter Handle"
+            value={twitterHandle}
+            disabled
+          />
+          <div onClick={() => setShowMerkleTree(true)}>
+            <SingleLineInput
+              label={`Anonymity Set ${merkleRoot && `[Root: ${merkleRoot}]`}`}
+              value={twitterAnonset.join(", ")}
+              disabled
+            />
+          </div>
+          {merkleTree &&
+            <ReactModal isOpen={showMerkleTree} onRequestClose={() => setShowMerkleTree(false)} appElement={document.getElementById('root') || undefined}>
+              <Button onClick={() => setShowMerkleTree(false)}>Close</Button>
+              <D3Tree
+                data={merkleTree.toD3Data(twitterAnonset, [...value?.merkle_path_elements||[], twitterHandle||''])}
+                levels={merkleTree.levels}
+              />
+            </ReactModal>
+          }
           <LabeledTextArea
             label="Proof Output"
             value={proof}

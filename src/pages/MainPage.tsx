@@ -218,7 +218,7 @@ export const MainPage: React.FC<{}> = (props) => {
         <span style={{ color: "rgba(255, 255, 255, 0.7)" }}>
           Welcome to a demo page for zk-email technology. <a href="https://github.com/zk-email-verify/zk-email-verify/">Our library</a> will allow you to generate zero knowledge
           proofs proving you received some email and mask out any private data, without trusting our server to keep your privacy. This demo is just one usecase that lets you prove
-          you own a Twitter username on-chain, by verifying confirmation emails (and their normally-hidden headers) from Twitter. You can read more on{" "}
+          you own a Twitter username among an anonymity set on-chain, by verifying confirmation emails (and their normally-hidden headers) from Twitter. You can read more on{" "}
           <a href="https://blog.aayushg.com/posts/zkemail">our blog</a> and technical details on <a href="https://github.com/zkemail/zk-email-verify">our Github</a>. If you wish to
           generate a ZK proof of Twitter badge, you must:
         </span>

@@ -10,9 +10,9 @@ To setup,
 
 ```
 curl -L https://foundry.paradigm.xyz | bash && source ~/.bashrc && foundryup
-forge install foundry-rs/forge-std
-cp -r node_modules/@openzeppelin src/contracts/lib/@openzeppelin
 cd src/contracts
+forge install foundry-rs/forge-std
+cp -r ../../node_modules/@openzeppelin lib/openzeppelin-contracts
 
 forge install
 forge install dapphub/ds-test --no-commit --no-git

@@ -14,7 +14,7 @@ library NFTSVG {
     using StringUtils for *;
 
     struct SVGParams {
-        string username;
+        string merkleRoot;
         uint256 tokenId;
         string color0;
         string color1;
@@ -32,8 +32,8 @@ library NFTSVG {
         return string(
             abi.encodePacked(
                 generateSVGDefs(params),
-                generateSVGBorderText(params.username),
-                generateSVGCardMantle(params.username),
+                generateSVGBorderText(params.merkleRoot),
+                generateSVGCardMantle(params.merkleRoot),
                 generateSVGLogo(),
                 "</svg>"
             )
@@ -142,13 +142,13 @@ library NFTSVG {
     function generateSVGCardMantle(string memory username) private pure returns (string memory svg) {
         svg = string(
             abi.encodePacked(
-                '<g mask="url(#fade-symbol)"><rect fill="none" x="0px" y="0px" width="290px" height="400px" /> <text y="70px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="36px">',
+                '<g mask="url(#fade-symbol)"><rect fill="none" x="0px" y="0px" width="290px" height="400px" /> <text y="70px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="24px">',
                 "My verified",
-                '</text><text y="115px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="36px">',
+                '</text><text y="115px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="24px">',
                 "Twitter account",
-                '</text><text y="160px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="36px">',
-                "is",
-                '</text><text y="205px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="36px">',
+                '</text><text y="160px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="24px">',
+                "is part of",
+                '</text><text y="205px" x="32px" fill="white" font-family="\'Courier New\', monospace" font-weight="200" font-size="24px">',
                 username,
                 "</text></g>",
                 '<rect x="16" y="16" width="258" height="468" rx="26" ry="26" fill="rgba(0,0,0,0)" stroke="rgba(255,255,255,0.2)" />'
@@ -187,13 +187,13 @@ library NFTSVG {
         return string(StringUtils.toHexStringNoPrefix(token >> offset, 3));
     }
 
-    function constructAndReturnSVG(string memory username, uint256 tokenId, address owner)
+    function constructAndReturnSVG(string memory merkleRoot, uint256 tokenId, address owner)
         internal
         pure
         returns (string memory svg)
     {
         SVGParams memory svgParams = SVGParams({
-            username: username,
+            merkleRoot: merkleRoot,
             tokenId: tokenId,
             color0: tokenToColorHex(uint256(uint160(owner)), 136),
             color1: tokenToColorHex(uint256(uint160(owner)), 136),
@@ -213,9 +213,9 @@ library NFTSVG {
                 string(
                     abi.encodePacked(
                         '{"attributes":[ ',
-                        '{"trait_type": "Name",',
+                        '{"trait_type": "Merkle Root",',
                         '"value": "',
-                        username,
+                        merkleRoot,
                         '"}, {"trait_type": "Owner",',
                         '"value": "',
                         StringUtils.toHexString(uint256(uint160(owner)), 42),

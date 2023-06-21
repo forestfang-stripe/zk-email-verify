@@ -19,7 +19,7 @@ contract Deploy is Script, Test {
     function run() public {
         uint256 sk = getPrivateKey();
         vm.startBroadcast(sk);
-        Verifier proofVerifier = new Verifier();
+        Groth16Verifier proofVerifier = new Groth16Verifier();
         MailServer mailServer = new MailServer();
         VerifiedTwitterEmail testVerifier = new VerifiedTwitterEmail(proofVerifier, mailServer);
         vm.stopBroadcast();

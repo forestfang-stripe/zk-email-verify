@@ -1,5 +1,5 @@
 import { kv } from "@vercel/kv";
-import { merkleTreeFromTwitterHandles } from "../src/helpers/twitterMerkle";
+import { merkleTreeFromTwitterHandles } from "src/helpers/twitterMerkle";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {

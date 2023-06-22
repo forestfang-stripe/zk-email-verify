@@ -17,7 +17,8 @@
     "jsx": "react-jsx",
     "typeRoots": ["./node_modules/@types", "./types"],
     "types": ["node", "jest"],
-    "incremental": true
+    "incremental": true,
+    "baseUrl": "."
   },
   "include": ["src", "circuits/scripts/", "api"],
   "exclude": ["node_modules"]

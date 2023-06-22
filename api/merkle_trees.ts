@@ -2,7 +2,7 @@ import { kv } from "@vercel/kv";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { buildPoseidon, buildMimcSponge } from "circomlibjs";
 
-export interface Hasher {
+interface Hasher {
   (data: string[]): Promise<BigInt>;
 }
 
@@ -12,7 +12,7 @@ BigInt.prototype.toJSON = function () {
   return this.toString();
 };
 
-export class JSONTree {
+class JSONTree {
   public root: JSONNode;
   public nodes: JSONNode[];
 
@@ -23,7 +23,7 @@ export class JSONTree {
 }
 
 // A representation of a node which is safe to be output as JSON (contains no cycles).
-export class JSONNode {
+class JSONNode {
   public value: BigInt;
   public left?: BigInt;
   public right?: BigInt;
@@ -37,7 +37,7 @@ export class JSONNode {
   }
 }
 
-export class Node {
+class Node {
   public value: BigInt;
   public left?: Node; // left child
   public right?: Node; // right child
@@ -62,13 +62,13 @@ export class Node {
 }
 
 // A public representation of a merkle proof
-export interface MerkleProof {
+interface MerkleProof {
   values: BigInt[];
   indexHints: number[]; // 0 if proofVal on left, 1 if proofVal on right
 }
 
 // A representation of a merkle tree
-export class MerkleTree {
+class MerkleTree {
   public root: Node;
   public leaves: Node[];
   private hasher: Hasher;
@@ -202,7 +202,7 @@ export class MerkleTree {
 }
 
 // stringToUint8Array
-export function stringToBytes(str: string) {
+function stringToBytes(str: string) {
   const encodedText = new TextEncoder().encode(str);
   const toReturn = Uint8Array.from(str, (x) => x.charCodeAt(0));
   //   const buf = Buffer.from(str, "utf8");

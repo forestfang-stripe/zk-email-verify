@@ -42,7 +42,7 @@ export const MainPage: React.FC<{}> = (props) => {
   const [showMerkleTree, setShowMerkleTree] = useState<boolean>(false);
   const [twitterMerkleList, setTwitterMerkleList] = React.useState<MerkleTreeList|null>(JSON.parse(localStorage.twitterMerkleList || 'null'));
   // computed state
-  const {value: merkleTree} = useAsync(async () => merkleTreeFromTwitterHandles(twitterMerkleList?.handles ?? []), [twitterMerkleList]);
+  const {value: merkleTree} = useAsync(async () => twitterMerkleList ? merkleTreeFromTwitterHandles(twitterMerkleList.handles) : null, [twitterMerkleList]);
   const { value, error } = useAsync(async () => {
     if (!merkleTree) return {};
     try {

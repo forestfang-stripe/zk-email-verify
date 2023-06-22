@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import * as d3 from "d3";
 
-export const D3Tree = ({ data, levels }: { data: any; levels: number }) => {
+export const D3Tree = ({ data, levels, index }: { data: any; levels: number, index: number }) => {
   const ref = useRef<SVGSVGElement>(null);
   const divRef = useRef<HTMLDivElement>(null);
 
@@ -17,7 +17,9 @@ export const D3Tree = ({ data, levels }: { data: any; levels: number }) => {
     ref.current.setAttribute("width", width.toString());
     ref.current.setAttribute("height", height.toString());
 
-    const treeLayout = d3.tree<any>().size([2 ** levels * 80, levels * 80]); // Multiply number of leaves by a suitable spacing factor
+    const dWidth = 80;
+    const dHeight = 80;
+    const treeLayout = d3.tree<any>().size([2 ** levels * dWidth, levels * dHeight]); // Multiply number of leaves by a suitable spacing factor
 
     const root = d3.hierarchy(data);
     treeLayout(root);
@@ -72,6 +74,7 @@ export const D3Tree = ({ data, levels }: { data: any; levels: number }) => {
       .scaleExtent([0.1, 4])
       .on("zoom", (event) => {
         g.attr("transform", event.transform);
+        console.log(event.transform);
       });
     // @ts-ignore
     svg.call(zoom);
@@ -79,11 +82,11 @@ export const D3Tree = ({ data, levels }: { data: any; levels: number }) => {
     // Compute the new scale and translate
     const x0 = 0;
     const y0 = 0;
-    const x1 = 2 ** levels * 10;
-    const y1 = levels * 16;
+    const x1 = 2 ** levels * dWidth;
+    const y1 = levels * dHeight;
     const dx = x1 - x0;
     const dy = y1 - y0;
-    const x = (x0 + x1) / 2;
+    const x = index >= 0 ? index * dWidth : (x0 + x1) / 2;
     const y = (y0 + y1) / 2;
     const scale = Math.max(
       1,

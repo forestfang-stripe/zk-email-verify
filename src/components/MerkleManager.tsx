@@ -182,6 +182,7 @@ const MerkleManager = ({
                   twitterHandle,
                 ])}
                 levels={merkleTree.levels}
+                index={selectedList.handles.indexOf(twitterHandle)}
               />
             )}
           </div>

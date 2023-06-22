@@ -7,10 +7,12 @@ import styled from "styled-components";
 import adjectiveNounGenerator from "adjective-noun-generator";
 import { merkleTreeFromTwitterHandles } from "../helpers/twitterMerkle";
 import Fuse from "fuse.js";
+import { bigintToRedactedString } from "../helpers/binaryFormat";
 
 export type MerkleTreeList = {
   name: string;
   handles: string[];
+  root: string;
 };
 
 const Container = styled.div`
@@ -22,17 +24,30 @@ const Container = styled.div`
   row-gap: 1em;
 `;
 
-const ListContainer = styled.div`
-  margin: 1em 0;
-`;
-
 const List = styled.ul`
   list-style-type: none;
+  padding: 0;
+  flex: 1 1 0;
+  overflow-y: auto;
 `;
 
 const ListItem = styled.li`
-  margin: 0.5em 0;
+  border: 1px solid #ccc;
+  margin-bottom: 0.5em;
+  padding: 0.5em;
   cursor: pointer;
+  box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.3s ease-in-out;
+  background-color: #23272A; // Darker gray
+  color: #FFF; // White
+
+  &:hover {
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+  }
+
+  h3 {
+    margin: .5em 0;
+  }
 `;
 
 const NewListForm = styled.form`
@@ -74,7 +89,7 @@ const MerkleManager = ({
   const [search, setSearch] = useState("");
 
   const [merkleTrees, fetchMerkleTrees] = useAsyncFn<
-    () => Promise<Record<string, MerkleTreeList>>
+    () => Promise<Record<string, Omit<MerkleTreeList, "root">>>
   >(async () => {
     try {
       if (!twitterHandle) return {};
@@ -89,20 +104,27 @@ const MerkleManager = ({
     fetchMerkleTrees();
   }, [fetchMerkleTrees]);
   const userLists = React.useMemo(() => {
-    if (!merkleTrees.value) return [];
-    return Object.values(merkleTrees.value);
+    const value = merkleTrees.value;
+    if (!value) return [];
+    return Object.keys(value).map((key) => ({ ...value[key], root: key }));
   }, [merkleTrees.value]);
   React.useEffect(() => {
     if (userLists.length === 0) return;
     if (!selectedList) return;
-    if (!userLists.find((x) => x.name === selectedList.name && JSON.stringify(x.handles) === JSON.stringify(selectedList.handles))) {
+    if (
+      !userLists.find(
+        (x) =>
+          x.name === selectedList.name &&
+          JSON.stringify(x.handles) === JSON.stringify(selectedList.handles)
+      )
+    ) {
       onChange(userLists[0]);
     }
   }, [userLists, selectedList, onChange]);
   const fuse = React.useMemo(
     () =>
       new Fuse(userLists, {
-        keys: ["name", "handles"],
+        keys: ["name", "handles", "root"],
       }),
     [userLists]
   );
@@ -176,7 +198,7 @@ const MerkleManager = ({
         <>
           <div
             style={{
-              flex: 1,
+              flex: "1 1 0px",
               display: "flex",
               flexDirection: "column",
               rowGap: "4px",
@@ -188,16 +210,23 @@ const MerkleManager = ({
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search lists"
             />
-            {filteredLists.map((list, i) => (
-              <ListItem
-                key={list.name + `__index__` + i}
-                onClick={() => {
-                  onChange(list);
-                }}
-              >
-                {list.name}
-              </ListItem>
-            ))}
+            <List>
+              {filteredLists.map((list, i) => (
+                <ListItem
+                  key={list.name + `__index__` + i}
+                  onClick={() => {
+                    onChange(list);
+                  }}
+                >
+                  <h3>{list.name} {bigintToRedactedString(BigInt(list.root))}</h3>
+                  <UserRow>
+                    {list.handles.map((user) => (
+                      <User key={user}>{user}</User>
+                    ))}
+                  </UserRow>
+                </ListItem>
+              ))}
+            </List>
           </div>
 
           <NewListForm

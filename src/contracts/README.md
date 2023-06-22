@@ -52,10 +52,10 @@ export RPC_URL="http://127.0.0.1:8548"
 forge inspect src/TwitterEmailHandler.sol:$MAIN_CONTRACT_NAME abi >> contract.abi
 
 # First, test deploy without actually broadcasting it
-forge script script/Deploy.s.sol:Deploy -vvvv --rpc-url $RPC_URL
+forge script script/DeployTwitter.s.sol:Deploy -vvvv --rpc-url $RPC_URL
 
 # Then, actually deploy
-forge script script/Deploy.s.sol:Deploy -vvvv --rpc-url $RPC_URL --broadcast --slow
+forge script script/DeployTwitter.s.sol:Deploy -vvvv --rpc-url $RPC_URL --broadcast --slow
 
 # Verify the contract with the raw one via Etherscan
 forge verify-contract $EMAIL_ADDR $MAIN_CONTRACT_NAME --watch --etherscan-api-key $GOERLI_ETHERSCAN_API_KEY

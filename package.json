@@ -62,7 +62,6 @@
     "typescript": "^4.8.3",
     "update-browserslist-db": "latest",
     "vite": "^4.3.9",
-    "vite-express": "^0.9.1",
     "vite-plugin-svgr": "^2.4.0",
     "vite-tsconfig-paths": "^4.2.0",
     "wagmi": "^0.6.8",
@@ -73,7 +72,7 @@
     "react-error-overlay": "6.0.9"
   },
   "scripts": {
-    "start": "npx tsx ./api/server.ts",
+    "start": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "test": "jest --runInBand --testPathIgnorePatterns='e2e' --reporters=default --reporters=jest-junit",

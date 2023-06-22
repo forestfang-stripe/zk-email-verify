@@ -16677,18 +16677,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite-express@npm:^0.9.1":
-  version: 0.9.1
-  resolution: "vite-express@npm:0.9.1"
-  dependencies:
-    picocolors: ^1.0.0
-  peerDependencies:
-    express: ^4.18.2
-    vite: ^4.0.0
-  checksum: 20cb541b74c62d6f9f89a3969b194aeb793bc3a03d08f5515d3fbb46b83ced2f628d077fc3ff0bc6931b32acddbcc42d5789ca10fb28293c445436f6b714060c
-  languageName: node
-  linkType: hard
-
 "vite-plugin-commonjs@npm:^0.7.1":
   version: 0.7.1
   resolution: "vite-plugin-commonjs@npm:0.7.1"
@@ -17609,7 +17597,6 @@ __metadata:
     update-browserslist-db: latest
     util: ^0.12.5
     vite: ^4.3.9
-    vite-express: ^0.9.1
     vite-plugin-commonjs: ^0.7.1
     vite-plugin-ngmi-polyfill: ^0.0.2
     vite-plugin-node-polyfills: ^0.8.2

@@ -73,7 +73,7 @@
     "react-error-overlay": "6.0.9"
   },
   "scripts": {
-    "start": "npx tsx ./src/api/server.ts",
+    "start": "npx tsx ./api/server.ts",
     "build": "tsc && vite build",
     "serve": "vite preview",
     "test": "jest --runInBand --testPathIgnorePatterns='e2e' --reporters=default --reporters=jest-junit",

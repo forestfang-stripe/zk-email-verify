@@ -1,7 +1,7 @@
 import express from "express";
 import bodyParser from "body-parser";
 import { kv } from "@vercel/kv";
-import { merkleTreeFromTwitterHandles } from "../helpers/twitterMerkle";
+import { merkleTreeFromTwitterHandles } from "../src/helpers/twitterMerkle";
 import ViteExpress from "vite-express";
 import "dotenv/config";
 

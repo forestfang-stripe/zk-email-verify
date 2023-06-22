@@ -265,6 +265,11 @@ export const MainPage: React.FC<{}> = (props) => {
             }}
           />
           <SingleLineInput
+            label="Twitter Handle"
+            value={twitterHandle}
+            disabled
+          />
+          <SingleLineInput
             label="Ethereum Address"
             value={ethereumAddress}
             onChange={(e) => {
@@ -383,11 +388,6 @@ export const MainPage: React.FC<{}> = (props) => {
         </Column>
         <Column>
           <SubHeader>Output</SubHeader>
-          <SingleLineInput
-            label="Twitter Handle"
-            value={twitterHandle}
-            disabled
-          />
           <LabeledTextArea
             label="Proof Output"
             value={proof}

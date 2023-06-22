@@ -183,7 +183,7 @@ export const MainPage: React.FC<{}> = (props) => {
         localStorage.publicSignals = publicSignals;
       }
     }
-  }, [value]);
+  }, [value, proof]);
   useUpdateEffect(() => {
     if (twitterMerkleList) {
       const twitterMerkleListString = JSON.stringify(twitterMerkleList);

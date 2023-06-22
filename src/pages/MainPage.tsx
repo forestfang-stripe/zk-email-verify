@@ -183,8 +183,6 @@ export const MainPage: React.FC<{}> = (props) => {
         localStorage.publicSignals = publicSignals;
       }
     }
-  }, [value, proof, publicSignals]);
-  useUpdateEffect(() => {
     if (twitterMerkleList) {
       const twitterMerkleListString = JSON.stringify(twitterMerkleList);
       if (localStorage.twitterMerkleList !== twitterMerkleListString) {
@@ -192,7 +190,7 @@ export const MainPage: React.FC<{}> = (props) => {
         localStorage.twitterMerkleList = twitterMerkleListString;
       }
     }
-  }, [twitterMerkleList]);
+  }, [value, proof, publicSignals, twitterMerkleList]);
 
   if (error) console.error(error);
 

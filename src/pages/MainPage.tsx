@@ -44,6 +44,7 @@ export const MainPage: React.FC<{}> = (props) => {
   // computed state
   const {value: merkleTree} = useAsync(async () => merkleTreeFromTwitterHandles(twitterMerkleList?.handles ?? []), [twitterMerkleList]);
   const { value, error } = useAsync(async () => {
+    if (!merkleTree) return {};
     try {
       const formattedArray = await insert13Before10(Uint8Array.from(Buffer.from(emailFull)));
       const {circuitInputs} = await generate_inputs(Buffer.from(formattedArray), ethereumAddress, CircuitType.MERKLE_EMAIL_TWITTER, merkleTree);

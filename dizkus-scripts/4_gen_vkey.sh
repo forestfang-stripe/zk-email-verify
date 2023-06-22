@@ -12,3 +12,12 @@ end=$(date +%s)
 { set +x; } 2>/dev/null
 echo "DONE ($((end - start))s)"
 echo
+
+echo "****GENERATING SOLIDITY VERIFIER****"
+start=$(date +%s)
+set -x
+NODE_OPTIONS='--max-old-space-size=56000' node ../node_modules/.bin/snarkjs zkey export solidityverifier "$BUILD_DIR"/"$CIRCUIT_NAME".zkey ../circuits/contracts/verifier.sol
+{ set +x; } 2>/dev/null
+end=$(date +%s)
+echo "DONE ($((end - start))s)"
+echo

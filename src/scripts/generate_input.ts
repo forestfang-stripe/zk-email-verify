@@ -21,6 +21,7 @@ import * as fs from "fs";
 import { pki } from "node-forge";
 import {buildPoseidon, buildMimcSponge} from "circomlibjs";
 import { MerkleTree } from "../helpers/merkle";
+import { merkleTreeFromTwitterHandles } from "../helpers/twitterMerkle";
 
 async function getArgs() {
   const args = process.argv.slice(2);
@@ -69,7 +70,6 @@ export interface ICircuitInputs {
   merkle_root?: string;
   merkle_path_elements?: string[];
   merkle_path_indices?: string[];
-  merkle_tree?: MerkleTree;
 }
 
 interface ExtendedCircuitInputs {
@@ -77,7 +77,6 @@ interface ExtendedCircuitInputs {
     validSignatureFormat?: boolean;
     validMessage?: boolean;
   };
-  merkleTree?: MerkleTree;
   circuitInputs: ICircuitInputs;
 }
 
@@ -133,6 +132,7 @@ export async function getCircuitInputs(
   body: Buffer,
   body_hash: string,
   eth_address: string,
+  merkle_tree: MerkleTree | null,
   circuit: CircuitType
 ): Promise<ExtendedCircuitInputs> {
   console.log("Starting processing of inputs");
@@ -269,24 +269,12 @@ export async function getCircuitInputs(
     const max_twitter_username_len = 21;
     const pack_size = 7; // 7 bytes to fit 255 bits signal
     const max_twitter_packed_bytes = Math.ceil(max_twitter_username_len / pack_size);
-    const twitter_usernames = [...new Set([twitter_username, ...TWITTER_ANON_SET])].sort();
-    const twitter_usernames_index = twitter_usernames.indexOf(twitter_username);
+    const twitter_packed = packBytesIntoNBytes(twitter_username, pack_size, max_twitter_packed_bytes).map(x => x.toString());
 
-    const twitter_usernames_packed = twitter_usernames.map((username) => {
-      const packed = packBytesIntoNBytes(username);
-      if (packed.length > max_twitter_packed_bytes) throw new Error(`Username too long ${username}`);
-      // pad with zeros
-      return  packed.concat(new Array(max_twitter_packed_bytes - packed.length).fill(0n));
-    });
-    // console.log(twitter_usernames_packed);
-    const poseidon = await buildPoseidon();
-    const twitter_usernames_hashed = twitter_usernames_packed.map((username_chunks) => poseidon.F.toString(poseidon(username_chunks)));
-    // console.log(twitter_usernames_hashed);
+    const merkleTree = merkle_tree || await merkleTreeFromTwitterHandles([...TWITTER_ANON_SET, twitter_username])
 
-    const mimcsponge = await buildMimcSponge();
-    merkleTree = await MerkleTree.newFromLeaves(twitter_usernames_hashed, async (x: string[]) => BigInt(mimcsponge.F.toString(mimcsponge.multiHash(x.map(BigInt)))));
     console.log(merkleTree);
-    const proof = merkleTree.getMerkleProof(BigInt(twitter_usernames_hashed[twitter_usernames_index]));
+    const proof = merkleTree.getMerkleProof(twitter_username);
     const merkle_path_elements = proof.values.map(x => x.toString());
     const merkle_path_indices = proof.indexHints.map(x => x.toString());
     const merkle_root = merkleTree.root.value.toString();
@@ -299,8 +287,6 @@ export async function getCircuitInputs(
     // const merkle_path_elements = proof.pathElements as string[];
     // const merkle_path_indices = proof.pathIndices.map(x => x.toString());
     // const merkle_root = merkle_tree.root as string;
-
-    const twitter_packed = twitter_usernames_packed[twitter_usernames_index].map(x => x.toString());
 
     circuitInputs = {
       twitter_packed,
@@ -334,7 +320,6 @@ export async function getCircuitInputs(
   }
   return {
     circuitInputs,
-    merkleTree,
     valid: {},
   };
 }
@@ -344,6 +329,7 @@ export async function generate_inputs(
   raw_email: Buffer | string,
   eth_address: string,
   type: CircuitType = CircuitType.EMAIL_SUBJECT,
+  merkle_tree: MerkleTree | null = null,
   nonce_raw: number | null | string = null
 ): Promise<ExtendedCircuitInputs> {
   const nonce = typeof nonce_raw == "string" ? nonce_raw.trim() : nonce_raw;
@@ -388,7 +374,7 @@ export async function generate_inputs(
   const pubKeyData = pki.publicKeyFromPem(pubkey.toString());
   // const pubKeyData = CryptoJS.parseKey(pubkey.toString(), 'pem');
   let modulus = BigInt(pubKeyData.n.toString());
-  return getCircuitInputs(sig, modulus, message, body, body_hash, eth_address, type);
+  return getCircuitInputs(sig, modulus, message, body, body_hash, eth_address, merkle_tree, type);
 }
 
 // Sometimes, newline encodings re-encode \r\n as just \n, so re-insert the \r so that the email hashes correctly
@@ -413,7 +399,7 @@ async function test_generate(writeToFile: boolean = true) {
   const { email_file, nonce, type } = await getArgs();
   const email = fs.readFileSync(email_file.trim());
   console.log(email);
-  const {circuitInputs: gen_inputs} = await generate_inputs(email, "0x0000000000000000000000000000000000000000",type as CircuitType, nonce);
+  const {circuitInputs: gen_inputs} = await generate_inputs(email, "0x0000000000000000000000000000000000000001",type as CircuitType, null, nonce);
   console.log(JSON.stringify(gen_inputs));
   if (writeToFile) {
     const file_dir = email_file.substring(0, email_file.lastIndexOf("/") + 1);

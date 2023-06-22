@@ -41,6 +41,7 @@ export class Node {
   public left?: Node; // left child
   public right?: Node; // right child
   public parent?: Node; // parent
+  public label?: string; // label for leaf nodes
 
   constructor(value: BigInt, left?: Node, right?: Node, parent?: Node) {
     this.value = value;
@@ -58,28 +59,27 @@ export class Node {
     );
   }
 
-  public toD3Datum(leafLabels: string[], levels: number, highlights: string[]): RawNodeDatum {
+  public toD3Datum(highlights: string[]): RawNodeDatum {
     if (!this.left || !this.right) {
-      const [leaf] = leafLabels;
-      const hit = highlights.includes(leaf);
+      const hit = this.label && highlights.includes(this.label);
       return {
         name: bigintToRedactedString(this.value),
-        children: leaf
-          ? [{ name: leaf, attributes: { color: hit ? "red" : "black" } }]
+        children: this.label
+          ? [{ name: this.label, attributes: { color: hit ? "red" : "" } }]
           : [],
         attributes: {
-          color: hit || highlights.includes(this.value.toString()) ? "red" : "black",
+          color: hit || highlights.includes(this.value.toString()) ? "red" : "",
         },
       };
     }
     return {
       name: bigintToRedactedString(this.value),
       children: [
-        this.left.toD3Datum(leafLabels.slice(0, 2 ** (levels - 1)), levels - 1, highlights),
-        this.right.toD3Datum(leafLabels.slice(2 ** (levels - 1)), levels - 1, highlights)
+        this.left.toD3Datum(highlights),
+        this.right.toD3Datum(highlights)
       ],
       attributes: {
-        color: highlights.includes(this.value.toString()) ? "red" : "black",
+        color: highlights.includes(this.value.toString()) ? "red" : "",
       },
     }
   }
@@ -116,11 +116,12 @@ export class MerkleTree {
 
     const resolved = await Promise.all(intVals);
 
-    return this.newFromLeaves(resolved, hasher);
+    return this.newFromLeaves(resolved, leaves, hasher);
   }
 
   public static async newFromLeaves(
     leaves: BigInt[],
+    labels: string[],
     hasher: Hasher,
     levels: number = 5
   ): Promise<MerkleTree> {
@@ -128,6 +129,7 @@ export class MerkleTree {
     const numLeaves = 2 ** levels;
     if (leaves.length > numLeaves) throw new Error(`too many leaves ${leaves.length} > 2 ** ${levels} (${numLeaves}))`);
     const nodes = Array.from({...leaves, length: numLeaves}, (x) => new Node(x||0n));
+    labels.forEach((label, i) => { nodes[i].label = label; });
     const buildResult = await MerkleTree.buildTree(nodes, hasher);
     const root = buildResult[0];
 
@@ -170,11 +172,11 @@ export class MerkleTree {
     return JSON.stringify(tree, null, 4);
   }
 
-  public toD3Data(leafLabels: string[], highlights: string[]): RawNodeDatum {
-    return this.root.toD3Datum(leafLabels, this.levels, highlights);
+  public toD3Data(highlights: string[]): RawNodeDatum {
+    return this.root.toD3Datum( highlights);
   }
 
-  public getMerkleProof(leafVal: BigInt): MerkleProof {
+  public getMerkleProof(leafVal: BigInt | string): MerkleProof {
     console.log(`getting proof for leaf ${leafVal}`);
     var leaf = MerkleTree.findNode(leafVal, this.leaves);
 
@@ -208,7 +210,7 @@ export class MerkleTree {
     return proof;
   }
 
-  private static findNode(value: BigInt, nodes: Node[]): Node | undefined {
-    return nodes.find((leaf) => leaf.value == value);
+  private static findNode(value: BigInt | string, nodes: Node[]): Node | undefined {
+    return nodes.find((leaf) => leaf.value == value || leaf.label == value);
   }
 }

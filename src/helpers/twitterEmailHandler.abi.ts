@@ -1,6 +1,17 @@
 export const abi = [
   {
-    inputs: [],
+    inputs: [
+      {
+        internalType: "contract Groth16Verifier",
+        name: "v",
+        type: "address",
+      },
+      {
+        internalType: "contract MailServer",
+        name: "m",
+        type: "address",
+      },
+    ],
     stateMutability: "nonpayable",
     type: "constructor",
   },
@@ -99,30 +110,6 @@ export const abi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "string",
-        name: "a",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "b",
-        type: "string",
-      },
-    ],
-    name: "_stringEq",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
     inputs: [],
     name: "addressIndexInSignals",
     outputs: [
@@ -174,19 +161,6 @@ export const abi = [
   },
   {
     inputs: [],
-    name: "body_len",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
     name: "bytesInPackedBytes",
     outputs: [
       {
@@ -196,30 +170,6 @@ export const abi = [
       },
     ],
     stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256[]",
-        name: "packedBytes",
-        type: "uint256[]",
-      },
-      {
-        internalType: "uint256",
-        name: "maxBytes",
-        type: "uint256",
-      },
-    ],
-    name: "convertPackedBytesToBytes",
-    outputs: [
-      {
-        internalType: "string",
-        name: "extractedString",
-        type: "string",
-      },
-    ],
-    stateMutability: "pure",
     type: "function",
   },
   {
@@ -236,19 +186,6 @@ export const abi = [
         internalType: "address",
         name: "",
         type: "address",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "header_len",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
       },
     ],
     stateMutability: "view",
@@ -296,9 +233,9 @@ export const abi = [
         type: "uint256[2]",
       },
       {
-        internalType: "uint256[21]",
+        internalType: "uint256[19]",
         name: "signals",
-        type: "uint256[21]",
+        type: "uint256[19]",
       },
     ],
     name: "mint",
@@ -468,88 +405,50 @@ export const abi = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "account",
-        type: "address",
-      },
-    ],
-    name: "toString",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "value",
-        type: "uint256",
-      },
-    ],
-    name: "toString",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes",
-        name: "data",
-        type: "bytes",
-      },
-    ],
-    name: "toString",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "bytes32",
-        name: "value",
-        type: "bytes32",
-      },
-    ],
-    name: "toString",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
-    stateMutability: "pure",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "uint256",
         name: "index",
         type: "uint256",
       },
     ],
     name: "tokenByIndex",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "tokenId",
+        type: "uint256",
+      },
+    ],
+    name: "tokenDesc",
+    outputs: [
+      {
+        internalType: "string",
+        name: "",
+        type: "string",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    name: "tokenIDToMerkle",
     outputs: [
       {
         internalType: "uint256",
@@ -579,25 +478,6 @@ export const abi = [
         internalType: "uint256",
         name: "",
         type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "tokenToName",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
       },
     ],
     stateMutability: "view",
@@ -683,34 +563,13 @@ export const abi = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256[2]",
-        name: "a",
-        type: "uint256[2]",
-      },
-      {
-        internalType: "uint256[2][2]",
-        name: "b",
-        type: "uint256[2][2]",
-      },
-      {
-        internalType: "uint256[2]",
-        name: "c",
-        type: "uint256[2]",
-      },
-      {
-        internalType: "uint256[21]",
-        name: "input",
-        type: "uint256[21]",
-      },
-    ],
-    name: "verifyProof",
+    inputs: [],
+    name: "verifier",
     outputs: [
       {
-        internalType: "bool",
-        name: "r",
-        type: "bool",
+        internalType: "contract Groth16Verifier",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",

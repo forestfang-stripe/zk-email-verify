@@ -91,7 +91,7 @@ for (let circuitName of circuitsList.split(",")) {
       if (contributingExtraRandomness) {
         zkeyOutputName = "circuit_0";
       }
-      let command = `node --max-old-space-size=614400 ${snarkJSPath} groth16 setup ${circuitNamePrimary}.r1cs ../../powersoftau/powersOfTau28_hez_final_${ptau_size}.ptau ${zkeyOutputName}.zkey`;
+      let command = `node --max-old-space-size=614400 ${snarkJSPath} groth16 setup ${circuitNamePrimary}.r1cs powersOfTau28_hez_final_${ptau_size}.ptau ${zkeyOutputName}.zkey`;
       console.log(command);
       execSync(command, { stdio: "inherit" });
       console.log("Done first zkey step!");
@@ -106,7 +106,7 @@ for (let circuitName of circuitsList.split(",")) {
           execSync(command, { stdio: "inherit" });
         }
       }
-      execSync(`node --max-old-space-size=614400 ${snarkJSPath} zkey verify ${circuitNamePrimary}.r1cs ../../powersoftau/powersOfTau28_hez_final_${ptau_size}.ptau circuit.zkey`, {
+      execSync(`node --max-old-space-size=614400 ${snarkJSPath} zkey verify ${circuitNamePrimary}.r1cs powersOfTau28_hez_final_${ptau_size}.ptau circuit.zkey`, {
         stdio: "inherit",
       });
       execSync(`mkdir -p ${cwd}/circuits/${circuitNamePrimary}/keys/`, { stdio: "inherit" });

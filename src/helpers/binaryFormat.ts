@@ -185,7 +185,7 @@ export function packedNBytesToString(packedBytes: bigint[], n: number = 7): stri
   return bytesToString(Uint8Array.from(chars));
 }
 
-export function packBytesIntoNBytes(messagePaddedRaw: Uint8Array | string, n = 7): Array<bigint> {
+export function packBytesIntoNBytes(messagePaddedRaw: Uint8Array | string, n = 7, outN = 0): Array<bigint> {
   const messagePadded: Uint8Array = typeof messagePaddedRaw === "string" ? stringToBytes(messagePaddedRaw) : messagePaddedRaw;
   let output: Array<bigint> = [];
   for (let i = 0; i < messagePadded.length; i++) {
@@ -195,6 +195,14 @@ export function packBytesIntoNBytes(messagePaddedRaw: Uint8Array | string, n = 7
     const j = (i / n) | 0;
     console.assert(j === output.length - 1, "Not editing the index of the last element -- packing loop invariants bug!");
     output[j] += BigInt(messagePadded[i]) << BigInt((i % n) * 8);
+  }
+  if (outN > 0) {
+    if (output.length > outN) {
+      throw new Error("Output array is longer than expected");
+    }
+    while (output.length < outN) {
+      output.push(0n);
+    }
   }
   return output;
 }

@@ -9,11 +9,7 @@ export default defineConfig({
   build: {
     outDir: "../dist",
   },
-  plugins: [
-    react(),
-    viteTsconfigPaths(),
-    commonjs(),
-  ],
+  plugins: [react(), viteTsconfigPaths(), commonjs()],
   resolve: {
     alias: {
       timers: "rollup-plugin-node-polyfills/polyfills/timers",
@@ -28,6 +24,6 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3001,
+    port: 3000,
   },
 });

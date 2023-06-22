@@ -23,7 +23,8 @@ import { isSetIterator } from "util/types";
 import { TWITTER_ANON_SET } from "../helpers/constants";
 import ReactModal from 'react-modal';
 import { MerkleTree } from "../helpers/merkle";
-import { D3Tree } from "../components/D3Tree";
+import MerkleManager, { MerkleTreeList } from "../components/MerkleManager";
+import { merkleTreeFromTwitterHandles } from "../helpers/twitterMerkle";
 
 export const MainPage: React.FC<{}> = (props) => {
   // raw user inputs
@@ -39,34 +40,29 @@ export const MainPage: React.FC<{}> = (props) => {
   const { address } = useAccount();
   const [ethereumAddress, setEthereumAddress] = useState<string>(address ?? "");
   const [showMerkleTree, setShowMerkleTree] = useState<boolean>(false);
-  const [merkleTree, setMerkleTree] = useState<MerkleTree>();
+  const [twitterMerkleList, setTwitterMerkleList] = React.useState<MerkleTreeList|null>(JSON.parse(localStorage.twitterMerkleList || 'null'));
   // computed state
+  const {value: merkleTree} = useAsync(async () => merkleTreeFromTwitterHandles(twitterMerkleList?.handles ?? []), [twitterMerkleList]);
   const { value, error } = useAsync(async () => {
     try {
       const formattedArray = await insert13Before10(Uint8Array.from(Buffer.from(emailFull)));
-      const {circuitInputs, merkleTree} = await generate_inputs(Buffer.from(formattedArray), ethereumAddress, CircuitType.MERKLE_EMAIL_TWITTER);
-      setMerkleTree(merkleTree);
+      const {circuitInputs} = await generate_inputs(Buffer.from(formattedArray), ethereumAddress, CircuitType.MERKLE_EMAIL_TWITTER, merkleTree);
       return circuitInputs;
     } catch (e) {
       console.warn(e);
       return {};
     }
-  }, [emailFull, ethereumAddress]);
+  }, [emailFull, ethereumAddress, merkleTree]);
   const twitterHandle = React.useMemo(() => {
     const twitter_username_matches = emailFull.match(/This email was meant for @([a-zA-A0-9_]+)/);
     if (!twitter_username_matches) return null;
     const twitter_username = twitter_username_matches[1];
     return twitter_username;
   }, [emailFull]);
-  const twitterAnonset = React.useMemo(() => {
-    if (!twitterHandle) return [];
-    return [...new Set([twitterHandle, ...TWITTER_ANON_SET])].sort();
-  }, [twitterHandle]);
   const merkleRoot = React.useMemo(() => {
-    if (!publicSignals) return "";
-    const publicSignalsArray = JSON.parse(publicSignals);
-    return bigintToRedactedString(publicSignalsArray[publicSignalsArray.length - 1]);
-  }, [publicSignals]);
+    if (!merkleTree) return "";
+    return bigintToRedactedString(merkleTree.root.value);
+  }, [merkleTree]);
 
   const circuitInputs = value || {};
   console.log("Circuit inputs:", circuitInputs);
@@ -144,7 +140,7 @@ export const MainPage: React.FC<{}> = (props) => {
   };
 
   const { config } = usePrepareContractWrite({
-    addressOrName: "0x72D9d080853f1AfA52662D71A24D92498Ef84799", // TODO: get address
+    addressOrName: "0x1ef4a37d9B06b9F2A7d438cad472F60f9B08e960", // TODO: get address
     contractInterface: abi, // TODO: get abi
     functionName: "mint",
     args: [...reformatProofForChain(proof), publicSignals ? JSON.parse(publicSignals) : null],
@@ -187,6 +183,15 @@ export const MainPage: React.FC<{}> = (props) => {
       }
     }
   }, [value]);
+  useUpdateEffect(() => {
+    if (twitterMerkleList) {
+      const twitterMerkleListString = JSON.stringify(twitterMerkleList);
+      if (localStorage.twitterMerkleList !== twitterMerkleListString) {
+        console.info("Wrote twitterMerkleList to localStorage");
+        localStorage.twitterMerkleList = twitterMerkleListString;
+      }
+    }
+  }, [twitterMerkleList]);
 
   if (error) console.error(error);
 
@@ -267,9 +272,23 @@ export const MainPage: React.FC<{}> = (props) => {
               setEthereumAddress(e.currentTarget.value);
             }}
           />
+          <div onClick={() => {
+            if (twitterHandle) {
+              setShowMerkleTree(true);
+            }
+          }}>
+            <SingleLineInput
+              label={`Anonymity Set ${merkleRoot && `[Root: ${merkleRoot}]`}`}
+              value={twitterMerkleList ? `${twitterMerkleList.name}: [${twitterMerkleList.handles.join(", ")}]`: undefined}
+              disabled
+            />
+          </div>
+          <ReactModal isOpen={showMerkleTree} onRequestClose={() => setShowMerkleTree(false)} appElement={document.getElementById('root') || undefined} style={{overlay: {backgroundColor: '#282c34'}, content: { backgroundColor: '#282c34'}}}>
+            <MerkleManager onClose={() => setShowMerkleTree(false)} twitterHandle={twitterHandle || ""} onChange={setTwitterMerkleList} selectedList={twitterMerkleList} />
+          </ReactModal>
           <Button
             data-testid="prove-button"
-            disabled={displayMessage !== "Prove" || emailFull.length === 0 || ethereumAddress.length === 0}
+            disabled={displayMessage !== "Prove" || emailFull.length === 0 || ethereumAddress.length === 0 || !twitterMerkleList}
             onClick={async () => {
               console.log("Generating proof...");
               setDisplayMessage("Generating proof...");
@@ -370,22 +389,6 @@ export const MainPage: React.FC<{}> = (props) => {
             value={twitterHandle}
             disabled
           />
-          <div onClick={() => setShowMerkleTree(true)}>
-            <SingleLineInput
-              label={`Anonymity Set ${merkleRoot && `[Root: ${merkleRoot}]`}`}
-              value={twitterAnonset.join(", ")}
-              disabled
-            />
-          </div>
-          {merkleTree &&
-            <ReactModal isOpen={showMerkleTree} onRequestClose={() => setShowMerkleTree(false)} appElement={document.getElementById('root') || undefined}>
-              <Button onClick={() => setShowMerkleTree(false)}>Close</Button>
-              <D3Tree
-                data={merkleTree.toD3Data(twitterAnonset, [...value?.merkle_path_elements||[], twitterHandle||''])}
-                levels={merkleTree.levels}
-              />
-            </ReactModal>
-          }
           <LabeledTextArea
             label="Proof Output"
             value={proof}
@@ -441,7 +444,7 @@ export const MainPage: React.FC<{}> = (props) => {
           </Button>
           {isSuccess && (
             <div>
-              Transaction: <a href={"https://goerli.etherscan.io/tx/" + data?.hash}>{data?.hash}</a>
+              Transaction: <a href={"https://goerli.etherscan.io/tx/" + data?.hash} target="_blank" referrerPolicy="no-referrer">{data?.hash}</a>
             </div>
           )}
         </Column>
